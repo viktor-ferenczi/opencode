@@ -93,6 +93,7 @@ import { CommandPlugin } from "./command.js"
 import { IdentityPlugin } from "./identity.js"
 import { PlanPlugin } from "./plan.js"
 import { ModelsDevPlugin } from "./models-dev.js"
+import { ProviderBaselinePlugin } from "./provider-baseline.js"
 import { McpCodeModeDefaultsPlugin } from "./mcp-codemode-defaults.js"
 import { ProviderPlugins } from "./provider.js"
 import { OpencodePlugin } from "./provider/opencode.js"
@@ -252,6 +253,8 @@ const pre = [
 ] as const satisfies readonly InternalPlugin[]
 
 const post = [
+  // Before ConfigProviderPlugin, so explicitly configured providers stay enabled.
+  ProviderBaselinePlugin,
   ConfigInstructionPlugin.Plugin,
   ConfigReferencePlugin.Plugin,
   ConfigAgentPlugin.Plugin,
