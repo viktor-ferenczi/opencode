@@ -2,7 +2,7 @@ export * as Project from "./project.js"
 
 import { Context, Effect, Layer, Schema } from "effect"
 import { ChildProcess } from "effect/unstable/process"
-import { and, asc, desc, eq, gte, isNull, lte, sql } from "drizzle-orm"
+import { and, asc, desc, eq, ne, sql } from "drizzle-orm"
 import path from "path"
 import { AbsolutePath } from "./schema.js"
 import { Bus } from "./bus.js"
@@ -51,7 +51,7 @@ export const root = Effect.fn("Project.root")(function* (
   input: AbsolutePath,
   markers: readonly string[] = [".git", ".hg"],
 ) {
-  return yield* fs.up({ targets: [...markers], start: input, mode: "first" }).pipe(
+  return yield* fs.up({ targets: [...markers], start: input, stop: input, mode: "first" }).pipe(
     Effect.map((matches) => (matches[0] ? AbsolutePath.make(path.dirname(matches[0])) : undefined)),
     Effect.orElseSucceed(() => undefined),
   )
@@ -155,37 +155,13 @@ const layer = Layer.effect(
             .get()
             .pipe(Effect.orDie)
           if (stored) return
-          const directory = AbsolutePath.make(yield* fs.resolve(item.directory))
-          const markerless = yield* db
-            .select({ id: ProjectTable.id, directory: ProjectTable.worktree })
-            .from(ProjectTable)
-            .where(
-              and(
-                isNull(ProjectTable.vcs),
-                gte(ProjectTable.worktree, directory),
-                lte(ProjectTable.worktree, AbsolutePath.make(directory + "\uffff")),
-              ),
-            )
-            .all()
-            .pipe(Effect.orDie)
-          const adopted = yield* Effect.filter(markerless, (candidate) =>
-            Effect.gen(function* () {
-              if (candidate.id === item.projectID) return false
-              if (!FSUtil.contains(directory, candidate.directory)) return false
-              const found = yield* fs
-                .up({ targets: [".git", ".hg"], start: candidate.directory, stop: directory, mode: "first" })
-                .pipe(Effect.orElseSucceed(() => []))
-              if (!found[0]) return false
-              return (yield* fs.resolve(path.dirname(found[0]))) === directory
-            }),
-          )
+          // Projects in subfolders stay separate; a repository never adopts them.
           yield* bus.publish(
             Worktree.Event.Resolved,
             {
               projectID: item.projectID,
               directory: item.directory,
               previous: project.previous ?? ID.global,
-              ...(adopted.length ? { adopted: adopted.map((candidate) => candidate.id) } : {}),
             },
             {
               commit: () =>
@@ -336,7 +312,8 @@ const layer = Layer.effect(
 
     const resolve = Effect.fn("Project.resolve")(function* (input: AbsolutePath) {
       const directory = AbsolutePath.make(yield* fs.resolve(input))
-      const native = yield* fs.up({ targets: [".git", ".hg"], start: directory, mode: "first" }).pipe(
+      // Only the selected directory itself may be a repository root; repositories in parent folders are ignored.
+      const native = yield* fs.up({ targets: [".git", ".hg"], start: directory, stop: directory, mode: "first" }).pipe(
         Effect.map((matches) => matches[0]),
         Effect.orElseSucceed(() => undefined),
       )
@@ -371,8 +348,16 @@ const layer = Layer.effect(
         })
       }
 
+      // Keep an existing project registered for exactly this directory, even if it used to be a repository.
+      const existing = yield* db
+        .select({ id: ProjectTable.id })
+        .from(ProjectTable)
+        .where(and(eq(ProjectTable.worktree, directory), ne(ProjectTable.id, ID.global)))
+        .orderBy(desc(ProjectTable.time_active))
+        .get()
+        .pipe(Effect.orDie)
       return yield* persist({
-        id: ID.make(Hash.fast(`directory:${directory}`)),
+        id: existing?.id ?? ID.make(Hash.fast(`directory:${directory}`)),
         directory,
         canonical: directory,
         vcs: undefined,
