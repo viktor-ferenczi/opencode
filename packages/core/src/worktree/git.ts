@@ -26,7 +26,9 @@ export const make = Effect.gen(function* () {
     }),
     list: Effect.fn("Worktree.Git.list")(function* (directory) {
       const repository = yield* git.repo.discover(directory)
-      if (!repository) return yield* new DirectoryUnavailableError({ directory })
+      // A repository in a parent folder does not make this directory one of its checkouts.
+      if (!repository || (yield* fs.resolve(repository.worktree)) !== (yield* fs.resolve(directory)))
+        return yield* new DirectoryUnavailableError({ directory })
       const entries = yield* git.worktree.list(repository)
       return yield* Effect.forEach(entries, (entry) =>
         canonical(fs, entry.directory).pipe(
