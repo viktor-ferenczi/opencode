@@ -358,8 +358,7 @@ export const layer = (options?: Options) =>
           )
         : Effect.undefined
 
-      // The bundled snapshot is the boot-time floor for the catalog; the
-      // periodic fetch below still refreshes on top.
+      // The bundled snapshot is the boot-time floor for the catalog.
       const loadSnapshot = options?.snapshot === false ? Effect.undefined : bundledSnapshot
 
       // Best-effort: a cache-write failure must never kill catalog
@@ -428,10 +427,8 @@ export const layer = (options?: Options) =>
           )
       })
 
-      if (fetch && !process.argv.includes("--get-yargs-completions")) {
-        // Schedule.spaced runs the effect once, then waits between completions.
-        yield* Effect.forkScoped(refresh().pipe(Effect.repeat(Schedule.spaced(ttl)), Effect.ignore))
-      }
+      // No background refresh in this fork: the catalog stays as cached (or as bundled with this build), so new
+      // models and providers never appear on their own and existing selections keep resolving the same way.
 
       return Service.of({ get, refresh })
     }),
