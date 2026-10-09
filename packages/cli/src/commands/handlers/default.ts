@@ -4,7 +4,7 @@ import { run } from "@opencode/tui"
 import { Commands } from "../commands"
 import { Runtime } from "../../framework/runtime"
 import { Config } from "../../config"
-import { Context, Effect, FileSystem, Option, Queue, Schedule, Semaphore } from "effect"
+import { Context, Effect, FileSystem, Option, Queue, Semaphore } from "effect"
 import { ServerConnection } from "../../services/server-connection"
 import { Updater } from "../../services/updater"
 import { UpdatePreflight } from "../../services/update-preflight"
@@ -60,30 +60,9 @@ export default Runtime.handler(Commands, (input) =>
         catch: (cause) => new Error(errorMessage(cause)),
       })) !== undefined
     const updater = yield* Updater.Service
-    let installing: string | undefined
-    let latest: Updater.RunResult | undefined
-    const installListeners = new Set<(version: string) => void>()
-    const resultListeners = new Set<(result: Updater.RunResult) => void>()
-    // Background checks, `/update` lookups, and manual installs take turns so two installs never overlap.
+    // `/update` lookups and manual installs take turns so two installs never overlap.
+    // Automatic background update checks are disabled in this fork: nothing is checked or installed unless asked for.
     const checking = yield* Semaphore.make(1)
-    yield* updater
-      .run((version) => {
-        installing = version
-        installListeners.forEach((notify) => notify(version))
-      })
-      .pipe(
-        Effect.ensuring(Effect.sync(() => (installing = undefined))),
-        Effect.tap((result) =>
-          Effect.sync(() => {
-            if (!result || (result.type === latest?.type && result.version === latest.version)) return
-            latest = result
-            resultListeners.forEach((notify) => notify(result))
-          }),
-        ),
-        checking.withPermits(1),
-        Effect.repeat(Schedule.spaced("10 minutes")),
-        Effect.forkScoped({ startImmediately: true }),
-      )
     preflight.loading()
     const config = yield* Config.Service
     const npm = yield* Npm.Service
@@ -122,18 +101,9 @@ export default Runtime.handler(Commands, (input) =>
       },
       updater: {
         remote: requestedServer !== undefined,
-        subscribe: (notify) => {
-          if (latest) notify(latest)
-          resultListeners.add(notify)
-          return () => resultListeners.delete(notify)
-        },
-        check: (signal, notify) => {
-          if (installing) notify(installing)
-          installListeners.add(notify)
-          return runPromise(checking.withPermits(1)(updater.check()), { signal }).finally(() =>
-            installListeners.delete(notify),
-          )
-        },
+        // No background checks run, so there are never automatic notices to deliver.
+        subscribe: () => () => {},
+        check: (signal) => runPromise(checking.withPermits(1)(updater.check()), { signal }),
         apply: (version) => runPromise(checking.withPermits(1)(updater.apply(version))),
       },
       packages: {
