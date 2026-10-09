@@ -82,6 +82,7 @@ async function setup(input?: {
       }),
     },
     changed: (state) => seen.push(state),
+    automatic: true,
   }
 
   const scope = Scope.makeUnsafe()

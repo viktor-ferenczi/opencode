@@ -24,6 +24,8 @@ export type Dependencies = {
     readonly clear: Effect.Effect<void, unknown>
   }
   readonly changed: (state: UpdaterState) => void
+  /** Check on startup and every 10 minutes. Off in this fork's app: only "Check for Updates" contacts the update server. */
+  readonly automatic?: boolean
 }
 
 /** The update state machine. Fibers it forks belong to the caller's scope. */
@@ -244,14 +246,15 @@ export const make = Effect.fn("Updater.make")(function* (dependencies: Dependenc
 
     // Any other persisted target was downloaded by an earlier launch and never installed, so its blockmap is cached.
     if (ready && ready.version !== dependencies.currentVersion) downloaded = ready.version
-    yield* check
+    if (dependencies.automatic) yield* check
   })
 
   const starting = yield* start.pipe(Effect.forkScoped)
-  yield* Effect.gen(function* () {
-    yield* Effect.sleep("10 minutes")
-    yield* check
-  }).pipe(Effect.forever, Effect.forkScoped)
+  if (dependencies.automatic)
+    yield* Effect.gen(function* () {
+      yield* Effect.sleep("10 minutes")
+      yield* check
+    }).pipe(Effect.forever, Effect.forkScoped)
 
   return {
     check,
