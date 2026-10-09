@@ -35,7 +35,7 @@ export function createLocalProviderPlugin<Discovered>(input: {
   const discoveryLock = Semaphore.makeUnsafe(1)
   const suffix = input.stripPathSuffix ?? /\/v1$/
 
-  return function make(origin?: string, interval: Duration.Input = "30 seconds") {
+  return function make(origin?: string, interval: Duration.Input = "2 minutes") {
     return define({
       id: input.id,
       effect: Effect.fn(function* (ctx) {
