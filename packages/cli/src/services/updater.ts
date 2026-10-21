@@ -119,6 +119,12 @@ export interface Interface {
 
 export class Service extends Context.Service<Service, Interface>()("@opencode/cli/Updater") {}
 
+// This fork never installs upstream releases, which would replace it: update by rebuilding the fork from source.
+// Only the tests that keep covering the upstream install code turn updates back on.
+export const UpdatesDisabled = Context.Reference<boolean>("@opencode/cli/Updater/UpdatesDisabled", {
+  defaultValue: () => true,
+})
+
 export function decodePolicy(text: string): Policy | undefined {
   // The CLI only projects this host-level preference instead of initializing
   // the location-scoped server configuration graph.
@@ -137,6 +143,7 @@ export function decodePolicy(text: string): Policy | undefined {
 }
 
 const make = Effect.gen(function* () {
+  const updatesDisabled = yield* UpdatesDisabled
   const fs = yield* FileSystem.FileSystem
   const global = yield* Global.Service
   const appProcess = yield* AppProcess.Service
@@ -348,12 +355,22 @@ const make = Effect.gen(function* () {
     return version
   })
 
-  const latest = (selected?: Method) =>
-    (selected ? Effect.succeed(selected) : method()).pipe(
+  // With updates disabled every update entry point stops here, before any network access.
+  const forkDisabled = () =>
+    new UpgradeError({
+      title: "Updates are disabled in this OpenCode fork",
+      detail: "Installing an upstream OpenCode release would replace this fork build.",
+      retry: "Rebuild the fork from source to update.",
+    })
+
+  const latest = (selected?: Method): Effect.Effect<string, Error> => {
+    if (updatesDisabled) return Effect.fail(forkDisabled())
+    return (selected ? Effect.succeed(selected) : method()).pipe(
       Effect.flatMap((method) =>
         method === "winget" ? wingetVersion() : release(method).pipe(Effect.map((data) => data.version)),
       ),
     )
+  }
 
   const temporaryDirectory = (prefix: string) =>
     Effect.acquireRelease(fs.makeTempDirectory({ directory: global.cache, prefix }), (directory) =>
@@ -413,6 +430,7 @@ const make = Effect.gen(function* () {
   }
 
   const upgrade = Effect.fnUntraced(function* (method: Method, input: string) {
+    if (updatesDisabled) return yield* Effect.fail(forkDisabled())
     if (!parseReleaseVersion(input)) return yield* Effect.fail(new Error(`Invalid version: ${input}`))
     const version = input.trim().replace(/^v/, "")
     const packageName =
@@ -534,6 +552,7 @@ const make = Effect.gen(function* () {
   })
 
   const apply = Effect.fn("cli.updater.apply")(function* (version: string) {
+    if (updatesDisabled) return yield* Effect.fail(forkDisabled())
     if (!(yield* install(version)))
       return yield* Effect.fail(
         new Error(
@@ -543,6 +562,11 @@ const make = Effect.gen(function* () {
   })
 
   const check = Effect.fn("cli.updater.check")(function* () {
+    if (updatesDisabled)
+      return {
+        type: "unavailable" as const,
+        message: "Updates are disabled in this OpenCode fork. Rebuild it from source to update.",
+      }
     if (OPENCODE_LOCAL)
       return {
         type: "unavailable" as const,
@@ -568,7 +592,6 @@ const make = Effect.gen(function* () {
   })
 
   // Automatic updates are disabled in this fork: no background check, download or install ever happens.
-  // Only an explicit `opencode upgrade` or `/update` reaches the update service.
   const run = (_onInstall?: (version: string) => void): Effect.Effect<RunResult | undefined> =>
     Effect.logInfo("update check skipped", { reason: "auto-update-disabled" }).pipe(Effect.as(undefined))
 

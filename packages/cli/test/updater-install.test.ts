@@ -24,6 +24,7 @@ function fixture(
   releasePackage = name,
   formula?: string,
   executableOverride?: (root: string, home: string) => Effect.Effect<string, PlatformError.PlatformError, FileSystem.FileSystem>,
+  updatesDisabled = false,
 ) {
   return Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem
@@ -82,6 +83,7 @@ function fixture(
     const commands: string[][] = []
     const updater = yield* Updater.Service.pipe(
       Effect.provide(Updater.layer),
+      Effect.provideService(Updater.UpdatesDisabled, updatesDisabled),
       Effect.provide(
         LayerNode.compile(EffectFlock.node, {
           replacements: [Global.node.replace(Layer.succeed(Global.Service, global))],
@@ -133,6 +135,25 @@ function fixture(
     return { updater, commands, requests, global, fs, executable, bash }
   })
 }
+
+it.live("the fork never checks for, downloads or installs updates", () =>
+  Effect.gen(function* () {
+    const test = yield* fixture(undefined, undefined, undefined, undefined, undefined, undefined, true)
+    expect(yield* test.updater.check()).toEqual({
+      type: "unavailable",
+      message: "Updates are disabled in this OpenCode fork. Rebuild it from source to update.",
+    })
+    for (const attempt of [
+      test.updater.latest("npm"),
+      test.updater.upgrade("npm", "2.3.4"),
+      test.updater.apply("2.3.4"),
+    ])
+      expect(yield* attempt.pipe(Effect.flip)).toBeInstanceOf(Updater.UpgradeError)
+    expect(yield* test.updater.run()).toBeUndefined()
+    expect(test.commands).toEqual([])
+    expect(test.requests).toEqual([])
+  }),
+)
 
 const windows = process.platform === "win32" ? it.live : it.live.skip
 const unix = process.platform === "win32" ? it.live.skip : it.live
