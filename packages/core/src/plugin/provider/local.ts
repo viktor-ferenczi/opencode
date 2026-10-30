@@ -22,6 +22,9 @@ export type LocalModel = {
 
 export type LocalDiscoveryClient = ReturnType<typeof createClient>
 
+/** Providers whose models are discovered from a local server rather than a remote catalog. */
+export const localProviderIDs = new Set<string>()
+
 export function createLocalProviderPlugin<Discovered>(input: {
   readonly id: string
   readonly providerID: string
@@ -31,6 +34,7 @@ export function createLocalProviderPlugin<Discovered>(input: {
   readonly discover: (client: LocalDiscoveryClient) => Effect.Effect<readonly Discovered[], unknown>
   readonly model: (item: NoInfer<Discovered>) => LocalModel
 }) {
+  localProviderIDs.add(input.providerID)
   const discovery = new Map<string, { checked: number; apiKey?: string; models?: readonly Discovered[] }>()
   const discoveryLock = Semaphore.makeUnsafe(1)
   const suffix = input.stripPathSuffix ?? /\/v1$/
