@@ -112,6 +112,7 @@ function SessionScreenContent(props: {
     bottomDock?: HTMLDivElement
   }>({})
 
+  const wide = createMemo(() => isDesktop() && session.layout.view().session.wide())
   const sideVisible = createMemo(() => isDesktop() && screen.side.layout().visible)
   const sideDockVisible = createMemo(() => isDesktop() && screen.dock.side() && screen.dock.open())
   const bottomDockVisible = createMemo(() => isDesktop() && screen.dock.open() && screen.dock.bottom())
@@ -393,6 +394,7 @@ function SessionScreenContent(props: {
               "transition-none": screen.size.active() || !sidePresence.animate(),
             }}
             data-slot="session-chat-panel"
+            data-wide={wide() ? "true" : undefined}
             data-width-animating={store.sideWidthMotion}
             data-scrollbar-hidden={store.timelineScrollbarHidden || store.sideWidthMotion}
             onPointerMove={revealTimelineScrollbar}
@@ -404,7 +406,7 @@ function SessionScreenContent(props: {
             onTransitionCancel={trackSideWidthMotion}
             style={{
               width: screen.panel.width(),
-              "--container-session": session.layout.view().session.wide() ? "100%" : undefined,
+              "--container-session": wide() ? "100%" : undefined,
             }}
           >
             <Show when={!!session.identity.params.id}>
