@@ -37,6 +37,8 @@ export type TabRegions = {
   setSideOpened(opened: boolean): void
   sessionWidth: Accessor<number | undefined>
   setSessionWidth(width: number): void
+  sessionWide: Accessor<boolean>
+  setSessionWide(wide: boolean): void
 }
 
 export type LayoutRoute =
@@ -520,6 +522,10 @@ export const { use: useLayout, provider: LayoutProvider } = createSimpleContext(
           session: {
             width: createMemo(() => regions.sessionWidth() ?? DEFAULT_SESSION_WIDTH),
             resize: regions.setSessionWidth,
+            wide: regions.sessionWide,
+            toggleWide() {
+              regions.setSessionWide(!regions.sessionWide())
+            },
           },
         }
       },

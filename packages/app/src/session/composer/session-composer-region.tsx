@@ -1,4 +1,4 @@
-import { Show, type JSX } from "solid-js"
+import { Show, children, type JSX } from "solid-js"
 import { useLanguage } from "@/runtime/i18n/language"
 import { SessionPermissionDock } from "@/session/requests/session-permission-dock"
 import { SessionQuestionDock } from "@/session/requests/session-question-dock"
@@ -18,15 +18,21 @@ export type SessionComposerRegionViewController = Pick<
 export function SessionComposerRegion(props: {
   controller: SessionComposerRegionViewController
   composer: JSX.Element
+  footer?: JSX.Element
 }) {
   const language = useLanguage()
   const controller = props.controller
+  const footer = children(() => props.footer)
 
   return (
     <div
       ref={controller.setDockRef}
       data-component="session-composer-dock"
-      class="w-full shrink-0 flex flex-col justify-center items-center pb-3 pointer-events-none bg-v2-background-bg-base"
+      classList={{
+        "w-full shrink-0 flex flex-col justify-center items-center pointer-events-none bg-v2-background-bg-base": true,
+        "pb-3": !footer(),
+        "pb-1": !!footer(),
+      }}
     >
       <div
         classList={{
@@ -84,6 +90,9 @@ export function SessionComposerRegion(props: {
               </div>
             </Show>
           </div>
+        </Show>
+        <Show when={footer()}>
+          <div class="mt-1 flex h-5 items-center justify-end">{footer()}</div>
         </Show>
       </div>
     </div>

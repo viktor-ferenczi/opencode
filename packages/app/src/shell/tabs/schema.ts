@@ -56,6 +56,7 @@ export const Regions = Schema.Record(
       side: Schema.optional(Schema.Boolean),
       dockHeight: Schema.optional(Schema.Finite),
       sessionWidth: Schema.optional(Schema.Finite),
+      wide: Schema.optional(Schema.Boolean),
     }).pipe(Schema.encodeKeys({ dock: "terminal", side: "review", dockHeight: "terminalHeight" })),
   ),
 )

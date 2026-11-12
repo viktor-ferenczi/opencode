@@ -56,6 +56,12 @@ export const clientSettings: Entry<SettingsRootTab>[] = [
   },
   {
     tab: "general",
+    label: "settings.general.row.conversationWidth.title",
+    target: "settings-conversation-width",
+    keywords: "conversation session width wide narrow full",
+  },
+  {
+    tab: "general",
     label: "settings.general.row.pinchZoom.title",
     target: "settings-pinch-zoom",
     available: "desktop",

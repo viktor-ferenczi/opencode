@@ -7,6 +7,7 @@ import { useServerSDK } from "@/runtime/server/client"
 import { base64Encode } from "@opencode/util/encode"
 import { ServerConnection } from "@/runtime/server/registry"
 import { findSessionTab, tabKey, useTabs } from "@/shell/tabs/tabs"
+import { useSettings } from "@/settings/model"
 
 export const useSessionKey = () => {
   const params = useParams()
@@ -23,6 +24,7 @@ export const useSessionKey = () => {
 export const useSessionLayout = () => {
   const layout = useLayout()
   const tabs = useTabs()
+  const settings = useSettings()
   const { params, sessionKey, workspaceKey } = useSessionKey()
   const serverSDK = useServerSDK()
 
@@ -41,6 +43,8 @@ export const useSessionLayout = () => {
     setSideOpened: (opened: boolean) => tabs.setRegion(currentTab(), "side", opened),
     sessionWidth: () => tabs.regionSize(currentTab(), "sessionWidth"),
     setSessionWidth: (width: number) => tabs.setRegionSize(currentTab(), "sessionWidth", width),
+    sessionWide: () => tabs.region(currentTab(), "wide", settings.general.conversationWidth() === "wide"),
+    setSessionWide: (wide: boolean) => tabs.setRegion(currentTab(), "wide", wide),
   }
 
   return {

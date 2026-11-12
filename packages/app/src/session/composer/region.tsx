@@ -33,6 +33,7 @@ import { resolveSessionComposerSelection } from "./selection"
 import { createSessionRequestModel } from "../requests/model"
 import type { Region } from "@/runtime/extension/panels"
 import { SessionLocationMissing } from "./location-missing"
+import { SessionWidthToggle } from "../session-width-toggle"
 
 export function createActiveSessionRegion(input: {
   session: SessionModel
@@ -346,6 +347,7 @@ export function ActiveSessionComposerRegion(props: {
   return (
     <SessionComposerRegion
       controller={props.model.region}
+      footer={props.session.isDesktop() ? <SessionWidthToggle /> : undefined}
       composer={
         <Show
           when={missing()}

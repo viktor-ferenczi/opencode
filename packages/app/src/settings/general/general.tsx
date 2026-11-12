@@ -7,6 +7,7 @@ import { useLanguage } from "@/runtime/i18n/language"
 import { usePlatform } from "@/runtime/platform/platform"
 import { ExtensionSettingsSections } from "@/runtime/extension/settings-page-view"
 import {
+  type ConversationWidth,
   type FollowUpBehavior,
   type TerminalPlacement,
   type WorkspaceDefaultDestination,
@@ -161,6 +162,34 @@ const FollowUpBehaviorSetting: Component = () => {
   )
 }
 
+const ConversationWidthSetting: Component = () => {
+  const language = useLanguage()
+  const settings = useSettings()
+
+  const options = createMemo((): { value: ConversationWidth; label: string }[] => [
+    { value: "wide", label: language.t("settings.general.row.conversationWidth.wide") },
+    { value: "narrow", label: language.t("settings.general.row.conversationWidth.narrow") },
+  ])
+
+  return (
+    <SettingsRow
+      title={language.t("settings.general.row.conversationWidth.title")}
+      description={language.t("settings.general.row.conversationWidth.description")}
+    >
+      <Select
+        data-action="settings-conversation-width"
+        options={options()}
+        current={options().find((option) => option.value === settings.general.conversationWidth())}
+        value={(option) => option.value}
+        label={(option) => option.label}
+        placement="bottom-end"
+        gutter={6}
+        onSelect={(option) => option && settings.general.setConversationWidth(option.value)}
+      />
+    </SettingsRow>
+  )
+}
+
 const LanguageSetting = () => {
   const language = useLanguage()
 
@@ -262,6 +291,7 @@ export const SettingsGeneral: Component = () => {
 
         <TerminalPlacementSetting />
         <FollowUpBehaviorSetting />
+        <ConversationWidthSetting />
 
         <Show when={desktop()}>
           <SettingsRow

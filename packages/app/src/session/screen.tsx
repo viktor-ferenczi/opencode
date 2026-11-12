@@ -402,7 +402,10 @@ function SessionScreenContent(props: {
             onTransitionRun={trackSideWidthMotion}
             onTransitionEnd={trackSideWidthMotion}
             onTransitionCancel={trackSideWidthMotion}
-            style={{ width: screen.panel.width() }}
+            style={{
+              width: screen.panel.width(),
+              "--container-session": session.layout.view().session.wide() ? "100%" : undefined,
+            }}
           >
             <Show when={!!session.identity.params.id}>
               <SessionPanelFrame raised>

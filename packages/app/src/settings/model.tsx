@@ -17,6 +17,8 @@ export type TerminalPlacement = Settings["general"]["terminalPlacement"]
 
 export type FollowUpBehavior = Settings["general"]["followUpBehavior"]
 
+export type ConversationWidth = Settings["general"]["conversationWidth"]
+
 export type TabLayout = Settings["appearance"]["tabLayout"]
 
 export type NotificationSettings = Settings["notifications"]
@@ -122,6 +124,7 @@ const generalSchema = Persistence.struct({
   mobileDiffWrap: Persistence.optional(Schema.Boolean),
   terminalPlacement: Schema.Literals(["side", "bottom"]),
   followUpBehavior: Schema.Literals(["queue", "steer"]),
+  conversationWidth: Schema.Literals(["wide", "narrow"]),
 })
 
 const appearanceSchema = Persistence.struct({
@@ -283,6 +286,7 @@ export const defaultSettings: Settings = {
     mobileTitlebarPosition: "top",
     terminalPlacement: "side",
     followUpBehavior: "steer",
+    conversationWidth: "wide",
   },
   appearance: { fontSize: 14, mono: "", sans: "", terminal: "", tabLayout: "horizontal" },
   keybinds: {},
@@ -374,6 +378,13 @@ export const { use: useSettings, provider: SettingsProvider } = createSimpleCont
         followUpBehavior: withFallback(() => store.general?.followUpBehavior, defaultSettings.general.followUpBehavior),
         setFollowUpBehavior(value: FollowUpBehavior) {
           setStore("general", "followUpBehavior", value)
+        },
+        conversationWidth: withFallback(
+          () => store.general?.conversationWidth,
+          defaultSettings.general.conversationWidth,
+        ),
+        setConversationWidth(value: ConversationWidth) {
+          setStore("general", "conversationWidth", value)
         },
       },
       visibility: {

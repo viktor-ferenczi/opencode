@@ -309,6 +309,8 @@ export const dict = {
   "prompt.mode.normal": "Prompt",
   "session.child.promptDisabled": "Subagent sessions cannot be prompted.",
   "session.child.backToParent": "Back to main session.",
+  "session.width.wide": "Use full width",
+  "session.width.narrow": "Use narrow width",
 
   "prompt.action.attachFile": "Add files",
 
@@ -844,6 +846,11 @@ export const dict = {
     "Choose whether to queue follow-ups or steer the current turn. Use {{keybind}} to switch.",
   "settings.general.row.followUpBehavior.queue": "Queue",
   "settings.general.row.followUpBehavior.steer": "Steer",
+  "settings.general.row.conversationWidth.title": "Conversation width",
+  "settings.general.row.conversationWidth.description":
+    "Choose the width new conversations start with. Toggle it per conversation below the composer.",
+  "settings.general.row.conversationWidth.wide": "Wide",
+  "settings.general.row.conversationWidth.narrow": "Narrow",
   "settings.general.row.pinchZoom.title": "Pinch to zoom",
   "settings.general.row.pinchZoom.description": "Allow trackpad pinch and Ctrl-scroll gestures to zoom",
 
